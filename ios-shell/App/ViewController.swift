@@ -9,7 +9,7 @@ final class GameViewController: UIViewController {
     override func loadView() {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
-        configuration.supportsMultipleWindows = false
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.scrollView.isScrollEnabled = false
