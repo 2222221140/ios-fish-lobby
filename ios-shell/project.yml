@@ -31,7 +31,8 @@ targets:
         UIUserInterfaceStyle: Dark
         UILaunchScreen: []
     dependencies:
-      - framework: WebKit.framework
+      - sdk: WebKit.framework
+      - sdk: UIKit.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fish.lobby
