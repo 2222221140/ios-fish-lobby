@@ -1,0 +1,63 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    name: Build unsigned IPA (macOS runner)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios-shell
+        run: xcodegen generate
+
+      - name: Build unsigned app
+        working-directory: ios-shell
+        run: |
+          xcodebuild build \
+            -project FishLobby.xcodeproj \
+            -scheme FishLobby \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            ENABLE_BITCODE=NO \
+            SWIFT_VERSION=5.0
+
+      - name: Package IPA
+        run: |
+          APP_DIR=$(find "$RUNNER_TEMP/DerivedData" -name "FishLobby.app" -type d | head -n 1)
+          if [ -z "$APP_DIR" ]; then
+            echo "::error::FishLobby.app not found"
+            exit 1
+          fi
+          echo "Found app: $APP_DIR"
+          rm -rf "$GITHUB_WORKSPACE/ipa"
+          mkdir -p "$GITHUB_WORKSPACE/ipa/Payload"
+          cp -R "$APP_DIR" "$GITHUB_WORKSPACE/ipa/Payload/"
+          cd "$GITHUB_WORKSPACE/ipa"
+          zip -qry FishLobby-unsigned.ipa Payload
+          mv FishLobby-unsigned.ipa "$GITHUB_WORKSPACE/"
+          echo "IPA size: $(du -h "$GITHUB_WORKSPACE/FishLobby-unsigned.ipa" | cut -f1)"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FishLobby-unsigned-ipa
+          path: FishLobby-unsigned.ipa
+          if-no-files-found: error
